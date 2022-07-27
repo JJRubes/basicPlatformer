@@ -33,10 +33,10 @@ int Editor::draw() {
   int worldPosX = 0;
   int worldPosY = 0;
 
-  int tiles[16][32];
-  for(int i = 0; i < 16; i++) {
-    for(int j = 0; j < 32; j++) {
-      tiles[i][j] = 6;
+  int tiles[5][16];
+  for(int i = 0; i < 5; i++) {
+    for(int j = 0; j < 16; j++) {
+      tiles[i][j] = 16 * i + j;
     }
   }
 
@@ -55,10 +55,10 @@ int Editor::draw() {
             brush %= (SHEET_WIDTH * SHEET_HEIGHT);
             break;
           case 'h':
-            worldPosX++;
+            worldPosX--;
             break;
           case 'l':
-            worldPosX--;
+            worldPosX++;
             break;
           case 'k':
             worldPosY--;
@@ -72,40 +72,45 @@ int Editor::draw() {
       }
     }
 
+    SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
     SDL_RenderClear(renderer);
     int scale = 4;
     int scaledW = scale * SPRITE_WIDTH;
-    for(int i = 0; i < 480; i += scale * SPRITE_WIDTH) {
-      for(int j = 0; j < 640; j += scale * SPRITE_WIDTH) {
+    int tilesInWidth =  640 / (2 * scaledW);
+    int tilesInHeight = 480 / (2 * scaledW);
+    int tilePosX = worldPosX / scaledW;
+    int tilePosY = worldPosY / scaledW;
+    int tileOffsetX = worldPosX % scaledW;
+    if(tileOffsetX < 0) {
+      tileOffsetX += scaledW;
+    }
+    int tileOffsetY = worldPosY % scaledW;
+    if(tileOffsetY < 0) {
+      tileOffsetY += scaledW;
+    }
+    for(int i = 0; i < tilesInHeight + 1; i++) {
+      for(int j = 0; j < tilesInWidth + 1; j++) {
         /*** Something is seriously jank here, have a look tomorrow ***/
 
         // world (0, 0) is the same point as tile (0, 0)
         // screen is the offset from (0, 0) of the top left of the screen
         // find out where it is in a tile
         // subtract that from the i and j
-        int tileOffsetX = worldPosX % scaledW;
-        if(worldPosX < 0) {
-          // tileOffsetX += scaledW;
-        }
-        int tileOffsetY = worldPosY % scaledW;
-        if(worldPosY < 0) {
-          // tileOffsetY += scaledW;
-        }
-        int x = j + worldPosX;
-        int y = i + worldPosY;
-        int tilePosX = x / (scale * SPRITE_WIDTH);
-        int tilePosY = y / (scale * SPRITE_WIDTH);
-        int screenTilePosX = j + tileOffsetX;
-        int screenTilePosY = i + tileOffsetY;
-        if(tilePosX < 0 || tilePosX > 32 || tilePosY < 0 || tilePosY > 16) {
+        int screenTilePosX = scaledW * j - tileOffsetX + 160;
+        int screenTilePosY = scaledW * i - tileOffsetY + 120;
+        if(tilePosX + j < 0 || tilePosX + j > 32
+            || tilePosY + i < 0 || tilePosY + i > 16) {
           // quit = true;
           // SDL_Log("Drawing backup tile at (%d, %d), where tile pos is (%d, %d), and world pos is (%d, %d)\n", x, y, tilePosX, tilePosY, worldPosX, worldPosY);
           drawSprite(0, screenTilePosX, screenTilePosY, scale);
         } else {
-          drawSprite(tiles[tilePosY][tilePosX], screenTilePosX, screenTilePosY, scale);
+          drawSprite(tiles[tilePosY + i][tilePosX + j], screenTilePosX, screenTilePosY, scale);
         }
       }
     }
+    SDL_Rect rect = {160, 120, 320, 240};
+    SDL_SetRenderDrawColor(renderer, 0x00, 0xaa, 0x2f, 0xff);
+    SDL_RenderDrawRect(renderer, &rect);
     int half = scale * SPRITE_WIDTH / 2;
     drawSprite(brush, half, 480 - 3 * half, scale);
     SDL_RenderPresent(renderer);
