@@ -21,6 +21,10 @@ int Editor::setup() {
     return 1;
   }
 
+  SDL_Log("tiles per width: %d, tiles per height %d\n",
+      TILED_SCREEN_WIDTH,
+      TILED_SCREEN_HEIGHT);
+
   // set colour to magenta to make it obvious
   SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
   return 0;
@@ -66,6 +70,8 @@ int Editor::draw() {
           case 'j':
             worldPosY++;
             break;
+          case 'a':
+            SDL_Log("(%d, %d)\n", worldPosX, worldPosY);
           default:
             break;
         }
@@ -74,45 +80,41 @@ int Editor::draw() {
 
     SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
     SDL_RenderClear(renderer);
-    int scale = 4;
-    int scaledW = scale * SPRITE_WIDTH;
-    int tilesInWidth =  640 / (2 * scaledW);
-    int tilesInHeight = 480 / (2 * scaledW);
-    int tilePosX = worldPosX / scaledW;
-    int tilePosY = worldPosY / scaledW;
-    int tileOffsetX = worldPosX % scaledW;
-    if(tileOffsetX < 0) {
-      tileOffsetX += scaledW;
+    int tileX = worldPosX / SCALED_SPRITE_WIDTH;
+    if(worldPosX < 0) {
+      tileX--;
     }
-    int tileOffsetY = worldPosY % scaledW;
-    if(tileOffsetY < 0) {
-      tileOffsetY += scaledW;
+    int tileY = worldPosY / SCALED_SPRITE_WIDTH;
+    if(worldPosY < 0) {
+      tileY--;
     }
-    for(int i = 0; i < tilesInHeight + 1; i++) {
-      for(int j = 0; j < tilesInWidth + 1; j++) {
-        /*** Something is seriously jank here, have a look tomorrow ***/
-
-        // world (0, 0) is the same point as tile (0, 0)
-        // screen is the offset from (0, 0) of the top left of the screen
-        // find out where it is in a tile
-        // subtract that from the i and j
-        int screenTilePosX = scaledW * j - tileOffsetX + 160;
-        int screenTilePosY = scaledW * i - tileOffsetY + 120;
-        if(tilePosX + j < 0 || tilePosX + j > 32
-            || tilePosY + i < 0 || tilePosY + i > 16) {
-          // quit = true;
-          // SDL_Log("Drawing backup tile at (%d, %d), where tile pos is (%d, %d), and world pos is (%d, %d)\n", x, y, tilePosX, tilePosY, worldPosX, worldPosY);
-          drawSprite(0, screenTilePosX, screenTilePosY, scale);
+    int tileOffsetX = worldPosX % SCALED_SPRITE_WIDTH;
+    if(worldPosX < 0) {
+      tileOffsetX += SCALED_SPRITE_WIDTH;
+    }
+    int tileOffsetY = worldPosY % SCALED_SPRITE_WIDTH;
+    if(worldPosY < 0) {
+      tileOffsetY += SCALED_SPRITE_WIDTH;
+    }
+    // Why do I need to add 2 here when it should be 1?
+    // is TILED_SCREEN_HEIGHT incorrect?
+    for(int i = 0; i < TILED_SCREEN_HEIGHT + 2; i++) {
+      for(int j = 0; j < TILED_SCREEN_WIDTH + 1; j++) {
+        int screenTilePosX = SCALED_SPRITE_WIDTH * j - tileOffsetX + 160;
+        int screenTilePosY = SCALED_SPRITE_WIDTH * i - tileOffsetY + 120;
+        if(tileX + j < 0 || tileX + j >= 16
+            || tileY + i < 0 || tileY + i >= 5) {
+          drawSprite(0, screenTilePosX, screenTilePosY, SPRITE_SCALE);
         } else {
-          drawSprite(tiles[tilePosY + i][tilePosX + j], screenTilePosX, screenTilePosY, scale);
+          drawSprite(tiles[tileY + i][tileX + j], screenTilePosX, screenTilePosY, SPRITE_SCALE);
         }
       }
     }
     SDL_Rect rect = {160, 120, 320, 240};
     SDL_SetRenderDrawColor(renderer, 0x00, 0xaa, 0x2f, 0xff);
     SDL_RenderDrawRect(renderer, &rect);
-    int half = scale * SPRITE_WIDTH / 2;
-    drawSprite(brush, half, 480 - 3 * half, scale);
+    int half = SPRITE_SCALE * SPRITE_WIDTH / 2;
+    drawSprite(brush, half, 480 - 3 * half, SPRITE_SCALE);
     SDL_RenderPresent(renderer);
   }
 
