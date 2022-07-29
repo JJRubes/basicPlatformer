@@ -74,18 +74,29 @@ int Editor::draw() {
 
     SDL_RenderClear(renderer);
     int scale = 4;
+    int scaledW = scale * SPRITE_WIDTH;
     for(int i = 0; i < 480; i += scale * SPRITE_WIDTH) {
       for(int j = 0; j < 640; j += scale * SPRITE_WIDTH) {
+        /*** Something is seriously jank here, have a look tomorrow ***/
+
         // world (0, 0) is the same point as tile (0, 0)
         // screen is the offset from (0, 0) of the top left of the screen
         // find out where it is in a tile
         // subtract that from the i and j
+        int tileOffsetX = worldPosX % scaledW;
+        if(worldPosX < 0) {
+          // tileOffsetX += scaledW;
+        }
+        int tileOffsetY = worldPosY % scaledW;
+        if(worldPosY < 0) {
+          // tileOffsetY += scaledW;
+        }
         int x = j + worldPosX;
         int y = i + worldPosY;
         int tilePosX = x / (scale * SPRITE_WIDTH);
         int tilePosY = y / (scale * SPRITE_WIDTH);
-        int screenTilePosX = tilePosX * scale * SPRITE_WIDTH - worldPosX;
-        int screenTilePosY = tilePosY * scale * SPRITE_WIDTH - worldPosY;
+        int screenTilePosX = j + tileOffsetX;
+        int screenTilePosY = i + tileOffsetY;
         if(tilePosX < 0 || tilePosX > 32 || tilePosY < 0 || tilePosY > 16) {
           // quit = true;
           // SDL_Log("Drawing backup tile at (%d, %d), where tile pos is (%d, %d), and world pos is (%d, %d)\n", x, y, tilePosX, tilePosY, worldPosX, worldPosY);
