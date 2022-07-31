@@ -98,7 +98,7 @@ int Editor::draw() {
     }
     // Why do I need to add 2 here when it should be 1?
     // is TILED_SCREEN_HEIGHT incorrect?
-    for(int i = 0; i < TILED_SCREEN_HEIGHT + 2; i++) {
+    for(int i = 0; i < TILED_SCREEN_HEIGHT + 1; i++) {
       for(int j = 0; j < TILED_SCREEN_WIDTH + 1; j++) {
         int screenTilePosX = SCALED_SPRITE_WIDTH * j - tileOffsetX + 160;
         int screenTilePosY = SCALED_SPRITE_WIDTH * i - tileOffsetY + 120;

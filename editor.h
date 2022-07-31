@@ -13,12 +13,14 @@ class Editor : public Game {
 
   private:
     const static int SPRITE_WIDTH = 16;
-    const static int SPRITE_SCALE = 4;
+    const static int SPRITE_SCALE = 3;
     const static int SCALED_SPRITE_WIDTH = SPRITE_SCALE * SPRITE_WIDTH;
     const static int SHEET_HEIGHT = 5;
     const static int SHEET_WIDTH = 16;
-    const static int TILED_SCREEN_WIDTH = (640 / 2) / SCALED_SPRITE_WIDTH;
-    const static int TILED_SCREEN_HEIGHT = (480 / 2) / SCALED_SPRITE_WIDTH;
+    // This is correct most of the time
+    // it will be 1 wider than it should if the sprite perfectly divides the width
+    const static int TILED_SCREEN_WIDTH = ((640 / 2) / SCALED_SPRITE_WIDTH) + 1;
+    const static int TILED_SCREEN_HEIGHT = ((480 / 2) / SCALED_SPRITE_WIDTH) + 1;
     SDL_Texture* spriteSheet;
 
     void drawSprite(int sprite, int x, int y, int scale = 1);
