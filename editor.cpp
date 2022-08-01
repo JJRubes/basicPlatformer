@@ -21,6 +21,9 @@ int Editor::setup() {
     return 1;
   }
 
+  screenPosX = -(640 - SCALED_SPRITE_WIDTH) / 2;
+  screenPosY = -(480 - SCALED_SPRITE_WIDTH) / 2;
+
   SDL_Log("tiles per width: %d, tiles per height %d\n",
       TILED_SCREEN_WIDTH,
       TILED_SCREEN_HEIGHT);
@@ -33,9 +36,6 @@ int Editor::setup() {
 int Editor::draw() {
   bool quit = false;
   int brush = 0;
-
-  int worldPosX = 0;
-  int worldPosY = 0;
 
   int tiles[5][16];
   for(int i = 0; i < 5; i++) {
@@ -59,19 +59,19 @@ int Editor::draw() {
             brush %= (SHEET_WIDTH * SHEET_HEIGHT);
             break;
           case 'h':
-            worldPosX--;
+            screenPosX--;
             break;
           case 'l':
-            worldPosX++;
+            screenPosX++;
             break;
           case 'k':
-            worldPosY--;
+            screenPosY--;
             break;
           case 'j':
-            worldPosY++;
+            screenPosY++;
             break;
           case 'a':
-            SDL_Log("(%d, %d)\n", worldPosX, worldPosY);
+            SDL_Log("(%d, %d)\n", screenPosX, screenPosY);
           default:
             break;
         }
@@ -80,28 +80,21 @@ int Editor::draw() {
 
     SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
     SDL_RenderClear(renderer);
-    int tileX = worldPosX / SCALED_SPRITE_WIDTH;
-    if(worldPosX < 0) {
-      tileX--;
-    }
-    int tileY = worldPosY / SCALED_SPRITE_WIDTH;
-    if(worldPosY < 0) {
-      tileY--;
-    }
-    int tileOffsetX = worldPosX % SCALED_SPRITE_WIDTH;
-    if(worldPosX < 0) {
+    tileFromScreen();
+    int tileOffsetX = screenPosX % SCALED_SPRITE_WIDTH;
+    if(screenPosX < 0) {
       tileOffsetX += SCALED_SPRITE_WIDTH;
     }
-    int tileOffsetY = worldPosY % SCALED_SPRITE_WIDTH;
-    if(worldPosY < 0) {
+    int tileOffsetY = screenPosY % SCALED_SPRITE_WIDTH;
+    if(screenPosY < 0) {
       tileOffsetY += SCALED_SPRITE_WIDTH;
     }
-    // Why do I need to add 2 here when it should be 1?
-    // is TILED_SCREEN_HEIGHT incorrect?
+
+    // add one so that during scrolling there isn't a gap
     for(int i = 0; i < TILED_SCREEN_HEIGHT + 1; i++) {
       for(int j = 0; j < TILED_SCREEN_WIDTH + 1; j++) {
-        int screenTilePosX = SCALED_SPRITE_WIDTH * j - tileOffsetX + 160;
-        int screenTilePosY = SCALED_SPRITE_WIDTH * i - tileOffsetY + 120;
+        int screenTilePosX = SCALED_SPRITE_WIDTH * j - tileOffsetX;
+        int screenTilePosY = SCALED_SPRITE_WIDTH * i - tileOffsetY;
         if(tileX + j < 0 || tileX + j >= 16
             || tileY + i < 0 || tileY + i >= 5) {
           drawSprite(0, screenTilePosX, screenTilePosY, SPRITE_SCALE);
@@ -110,10 +103,10 @@ int Editor::draw() {
         }
       }
     }
-    SDL_Rect rect = {160, 120, 320, 240};
+    int half = SPRITE_SCALE * SPRITE_WIDTH / 2;
+    SDL_Rect rect = {320 - half, 240 - half, SCALED_SPRITE_WIDTH, SCALED_SPRITE_WIDTH};
     SDL_SetRenderDrawColor(renderer, 0x00, 0xaa, 0x2f, 0xff);
     SDL_RenderDrawRect(renderer, &rect);
-    int half = SPRITE_SCALE * SPRITE_WIDTH / 2;
     drawSprite(brush, half, 480 - 3 * half, SPRITE_SCALE);
     SDL_RenderPresent(renderer);
   }
@@ -127,4 +120,27 @@ int Editor::clean() {
     SDL_DestroyTexture(spriteSheet);
   }
   return 0;
+}
+
+void Editor::tileFromScreen() {
+  tileX = screenPosX / SCALED_SPRITE_WIDTH;
+  if(screenPosX < 0) {
+    tileX--;
+  }
+  tileY = screenPosY / SCALED_SPRITE_WIDTH;
+  if(screenPosY < 0) {
+    tileY--;
+  }
+}
+
+// move the screen so that it is centred on a given tile
+void Editor::moveScreenToTile(int tx, int ty) {
+  // find the top left of the tile
+  int tWorldPosX = tx * SCALED_SPRITE_WIDTH;
+  int tWorldPosY = ty * SCALED_SPRITE_WIDTH;
+
+  // subtract half the screen width to centre the top-left
+  // then add half of the sprite width to centre on the middle of the tile
+  screenPosX = tWorldPosX - 640 / 2 + SCALED_SPRITE_WIDTH / 2;
+  screenPosY = tWorldPosY - 480 / 2 + SCALED_SPRITE_WIDTH / 2;
 }
