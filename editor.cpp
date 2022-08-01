@@ -4,6 +4,10 @@
 
 Editor::Editor() {
   spriteSheet = nullptr;
+  screenPosX = 0;
+  screenPosY = 0;
+  tileX = 0;
+  tileY = 0;
 }
 
 void Editor::drawSprite(int sprite, int x, int y, int scale) {
@@ -21,8 +25,11 @@ int Editor::setup() {
     return 1;
   }
 
-  screenPosX = -(640 - SCALED_SPRITE_WIDTH) / 2;
-  screenPosY = -(480 - SCALED_SPRITE_WIDTH) / 2;
+  // screenPosX = -(640 - SCALED_SPRITE_WIDTH) / 2;
+  // screenPosY = -(480 - SCALED_SPRITE_WIDTH) / 2;
+  tileX = 0;
+  tileY = 0;
+
 
   SDL_Log("tiles per width: %d, tiles per height %d\n",
       TILED_SCREEN_WIDTH,
@@ -59,19 +66,19 @@ int Editor::draw() {
             brush %= (SHEET_WIDTH * SHEET_HEIGHT);
             break;
           case 'h':
-            screenPosX--;
+            tileX--;
             break;
           case 'l':
-            screenPosX++;
+            tileX++;
             break;
           case 'k':
-            screenPosY--;
+            tileY--;
             break;
           case 'j':
-            screenPosY++;
+            tileY++;
             break;
           case 'a':
-            SDL_Log("(%d, %d)\n", screenPosX, screenPosY);
+            SDL_Log("screenPos: (%d, %d), tile: (%d, %d)\n", screenPosX, screenPosY, tileX, tileY);
           default:
             break;
         }
@@ -80,15 +87,18 @@ int Editor::draw() {
 
     SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
     SDL_RenderClear(renderer);
-    tileFromScreen();
-    int tileOffsetX = screenPosX % SCALED_SPRITE_WIDTH;
-    if(screenPosX < 0) {
-      tileOffsetX += SCALED_SPRITE_WIDTH;
-    }
-    int tileOffsetY = screenPosY % SCALED_SPRITE_WIDTH;
-    if(screenPosY < 0) {
-      tileOffsetY += SCALED_SPRITE_WIDTH;
-    }
+    moveScreenToTile(tileX, tileY);
+    // tileFromScreen();
+    int tileOffsetX = 0;
+    // int tileOffsetX = screenPosX % SCALED_SPRITE_WIDTH;
+    // if(screenPosX < 0) {
+    //   tileOffsetX += SCALED_SPRITE_WIDTH;
+    // }
+    int tileOffsetY = 0;
+    // int tileOffsetY = screenPosY % SCALED_SPRITE_WIDTH;
+    // if(screenPosY < 0) {
+    //   tileOffsetY += SCALED_SPRITE_WIDTH;
+    // }
 
     // add one so that during scrolling there isn't a gap
     for(int i = 0; i < TILED_SCREEN_HEIGHT + 1; i++) {
