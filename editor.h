@@ -33,8 +33,11 @@ class Editor : public Game {
     int screenPosY;
     int tileX;
     int tileY;
+    int screenTileX;
+    int screenTileY;
+    int tiles[5][16];
+    void renderScreen(int brush);
     void tileFromScreen();
-
     int currentTile;
     void moveScreenToTile(int tx, int ty);
 };

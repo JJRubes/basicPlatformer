@@ -8,6 +8,13 @@ Editor::Editor() {
   screenPosY = 0;
   tileX = 0;
   tileY = 0;
+  screenTileX = 0;
+  screenTileY = 0;
+  for(int i = 0; i < 5; i++) {
+    for(int j = 0; j < 16; j++) {
+      tiles[i][j] = 16 * i + j;
+    }
+  }
 }
 
 void Editor::drawSprite(int sprite, int x, int y, int scale) {
@@ -44,13 +51,6 @@ int Editor::draw() {
   bool quit = false;
   int brush = 0;
 
-  int tiles[5][16];
-  for(int i = 0; i < 5; i++) {
-    for(int j = 0; j < 16; j++) {
-      tiles[i][j] = 16 * i + j;
-    }
-  }
-
   while(!quit) {
     SDL_Event e;
     while(SDL_PollEvent(&e)) {
@@ -85,40 +85,8 @@ int Editor::draw() {
       }
     }
 
-    SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
-    SDL_RenderClear(renderer);
     moveScreenToTile(tileX, tileY);
-    // tileFromScreen();
-    int tileOffsetX = 0;
-    // int tileOffsetX = screenPosX % SCALED_SPRITE_WIDTH;
-    // if(screenPosX < 0) {
-    //   tileOffsetX += SCALED_SPRITE_WIDTH;
-    // }
-    int tileOffsetY = 0;
-    // int tileOffsetY = screenPosY % SCALED_SPRITE_WIDTH;
-    // if(screenPosY < 0) {
-    //   tileOffsetY += SCALED_SPRITE_WIDTH;
-    // }
-
-    // add one so that during scrolling there isn't a gap
-    for(int i = 0; i < TILED_SCREEN_HEIGHT + 1; i++) {
-      for(int j = 0; j < TILED_SCREEN_WIDTH + 1; j++) {
-        int screenTilePosX = SCALED_SPRITE_WIDTH * j - tileOffsetX;
-        int screenTilePosY = SCALED_SPRITE_WIDTH * i - tileOffsetY;
-        if(tileX + j < 0 || tileX + j >= 16
-            || tileY + i < 0 || tileY + i >= 5) {
-          drawSprite(0, screenTilePosX, screenTilePosY, SPRITE_SCALE);
-        } else {
-          drawSprite(tiles[tileY + i][tileX + j], screenTilePosX, screenTilePosY, SPRITE_SCALE);
-        }
-      }
-    }
-    int half = SPRITE_SCALE * SPRITE_WIDTH / 2;
-    SDL_Rect rect = {320 - half, 240 - half, SCALED_SPRITE_WIDTH, SCALED_SPRITE_WIDTH};
-    SDL_SetRenderDrawColor(renderer, 0x00, 0xaa, 0x2f, 0xff);
-    SDL_RenderDrawRect(renderer, &rect);
-    drawSprite(brush, half, 480 - 3 * half, SPRITE_SCALE);
-    SDL_RenderPresent(renderer);
+    renderScreen(brush);
   }
 
   return 0;
@@ -132,14 +100,51 @@ int Editor::clean() {
   return 0;
 }
 
-void Editor::tileFromScreen() {
-  tileX = screenPosX / SCALED_SPRITE_WIDTH;
+// once all variables are set call to render the screen
+void Editor::renderScreen(int brush) {
+  // clear the screen
+  SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
+  SDL_RenderClear(renderer);
+
+  tileFromScreen();
+  int tileOffsetX = screenPosX % SCALED_SPRITE_WIDTH;
   if(screenPosX < 0) {
-    tileX--;
+    tileOffsetX += SCALED_SPRITE_WIDTH;
   }
-  tileY = screenPosY / SCALED_SPRITE_WIDTH;
+  int tileOffsetY = screenPosY % SCALED_SPRITE_WIDTH;
   if(screenPosY < 0) {
-    tileY--;
+    tileOffsetY += SCALED_SPRITE_WIDTH;
+  }
+
+  // add one so that during scrolling there isn't a gap
+  for(int i = 0; i < TILED_SCREEN_HEIGHT + 1; i++) {
+    for(int j = 0; j < TILED_SCREEN_WIDTH + 1; j++) {
+      int screenTilePosX = SCALED_SPRITE_WIDTH * j - tileOffsetX;
+      int screenTilePosY = SCALED_SPRITE_WIDTH * i - tileOffsetY;
+      if(screenTileX + j < 0 || screenTileX + j >= 16
+          || screenTileY + i < 0 || screenTileY + i >= 5) {
+        drawSprite(0, screenTilePosX, screenTilePosY, SPRITE_SCALE);
+      } else {
+        drawSprite(tiles[screenTileY + i][screenTileX + j], screenTilePosX, screenTilePosY, SPRITE_SCALE);
+      }
+    }
+  }
+  int half = SPRITE_SCALE * SPRITE_WIDTH / 2;
+  SDL_Rect rect = {320 - half, 240 - half, SCALED_SPRITE_WIDTH, SCALED_SPRITE_WIDTH};
+  SDL_SetRenderDrawColor(renderer, 0x00, 0xaa, 0x2f, 0xff);
+  SDL_RenderDrawRect(renderer, &rect);
+  drawSprite(brush, half, 480 - 3 * half, SPRITE_SCALE);
+  SDL_RenderPresent(renderer);
+}
+
+void Editor::tileFromScreen(int steps) {
+  screenTileX = screenPosX / SCALED_SPRITE_WIDTH;
+  if(screenPosX < 0) {
+    screenTileX--;
+  }
+  screenTileY = screenPosY / SCALED_SPRITE_WIDTH;
+  if(screenPosY < 0) {
+    screenTileY--;
   }
 }
 
