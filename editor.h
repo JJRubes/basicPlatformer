@@ -39,7 +39,7 @@ class Editor : public Game {
     void renderScreen(int brush);
     void tileFromScreen();
     int currentTile;
-    void moveScreenToTile(int tx, int ty);
+    void moveScreenToTile(int tx, int ty, int steps);
 };
 
 #endif

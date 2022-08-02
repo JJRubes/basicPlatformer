@@ -50,6 +50,7 @@ int Editor::setup() {
 int Editor::draw() {
   bool quit = false;
   int brush = 0;
+  int steps = 1;
 
   while(!quit) {
     SDL_Event e;
@@ -67,15 +68,19 @@ int Editor::draw() {
             break;
           case 'h':
             tileX--;
+            steps = 100;
             break;
           case 'l':
             tileX++;
+            steps = 100;
             break;
           case 'k':
             tileY--;
+            steps = 100;
             break;
           case 'j':
             tileY++;
+            steps = 100;
             break;
           case 'a':
             SDL_Log("screenPos: (%d, %d), tile: (%d, %d)\n", screenPosX, screenPosY, tileX, tileY);
@@ -85,7 +90,10 @@ int Editor::draw() {
       }
     }
 
-    moveScreenToTile(tileX, tileY);
+    moveScreenToTile(tileX, tileY, steps);
+    if(steps > 1) {
+      steps--;
+    }
     renderScreen(brush);
   }
 
@@ -97,6 +105,8 @@ int Editor::clean() {
   if(spriteSheet != nullptr) {
     SDL_DestroyTexture(spriteSheet);
   }
+
+  delete[] tiles;
   return 0;
 }
 
@@ -137,7 +147,7 @@ void Editor::renderScreen(int brush) {
   SDL_RenderPresent(renderer);
 }
 
-void Editor::tileFromScreen(int steps) {
+void Editor::tileFromScreen() {
   screenTileX = screenPosX / SCALED_SPRITE_WIDTH;
   if(screenPosX < 0) {
     screenTileX--;
@@ -149,13 +159,15 @@ void Editor::tileFromScreen(int steps) {
 }
 
 // move the screen so that it is centred on a given tile
-void Editor::moveScreenToTile(int tx, int ty) {
+void Editor::moveScreenToTile(int tx, int ty, int step) {
   // find the top left of the tile
   int tWorldPosX = tx * SCALED_SPRITE_WIDTH;
   int tWorldPosY = ty * SCALED_SPRITE_WIDTH;
 
   // subtract half the screen width to centre the top-left
   // then add half of the sprite width to centre on the middle of the tile
-  screenPosX = tWorldPosX - 640 / 2 + SCALED_SPRITE_WIDTH / 2;
-  screenPosY = tWorldPosY - 480 / 2 + SCALED_SPRITE_WIDTH / 2;
+  int centredX = tWorldPosX - 640 / 2 + SCALED_SPRITE_WIDTH / 2;
+  int centredY = tWorldPosY - 480 / 2 + SCALED_SPRITE_WIDTH / 2;
+  screenPosX = (1 - 1.0 / step) * screenPosX + (1.0 / step) * centredX;
+  screenPosY = (1 - 1.0 / step) * screenPosY + (1.0 / step) * centredY;
 }
