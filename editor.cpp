@@ -84,6 +84,13 @@ int Editor::draw() {
             break;
           case 'a':
             SDL_Log("screenPos: (%d, %d), tile: (%d, %d)\n", screenPosX, screenPosY, tileX, tileY);
+            break;
+          case '-':
+            setScale(getScale() - 1);
+            break;
+          case '=':
+            setScale(getScale() + 1);
+            break;
           default:
             break;
         }
@@ -106,7 +113,6 @@ int Editor::clean() {
     SDL_DestroyTexture(spriteSheet);
   }
 
-  delete[] tiles;
   return 0;
 }
 
@@ -168,6 +174,15 @@ void Editor::moveScreenToTile(int tx, int ty, int step) {
   // then add half of the sprite width to centre on the middle of the tile
   int centredX = tWorldPosX - 640 / 2 + SCALED_SPRITE_WIDTH / 2;
   int centredY = tWorldPosY - 480 / 2 + SCALED_SPRITE_WIDTH / 2;
-  screenPosX = (1 - 1.0 / step) * screenPosX + (1.0 / step) * centredX;
-  screenPosY = (1 - 1.0 / step) * screenPosY + (1.0 / step) * centredY;
+  screenPosX = screenPosX + (1.0 / step) * (centredX - screenPosX);
+  screenPosY = screenPosY + (1.0 / step) * (centredY - screenPosY);
+}
+
+void Editor::setScale(int scale) {
+  SPRITE_SCALE = scale;
+  SCALED_SPRITE_WIDTH = SPRITE_SCALE * SPRITE_WIDTH;
+}
+
+int Editor::getScale() {
+  return SPRITE_SCALE;
 }
