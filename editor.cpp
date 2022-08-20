@@ -1,4 +1,5 @@
 #include<SDL.h>
+#include<fstream>
 #include"game.h"
 #include"editor.h"
 
@@ -10,11 +11,7 @@ Editor::Editor() {
   tileY = 0;
   screenTileX = 0;
   screenTileY = 0;
-  for(int i = 0; i < 5; i++) {
-    for(int j = 0; j < 16; j++) {
-      tiles[i][j] = 16 * i + j;
-    }
-  }
+  tiles = nullptr;
 }
 
 void Editor::drawSprite(int sprite, int x, int y, int scale) {
@@ -42,6 +39,8 @@ int Editor::setup() {
       TILED_SCREEN_WIDTH,
       TILED_SCREEN_HEIGHT);
 
+  readLevel("level1.txt");
+
   // set colour to magenta to make it obvious
   SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
   return 0;
@@ -67,20 +66,28 @@ int Editor::draw() {
             brush %= (SHEET_WIDTH * SHEET_HEIGHT);
             break;
           case 'h':
-            tileX--;
-            steps = 100;
+            if(tileX > 0) {
+              tileX--;
+              steps = 100;
+            }
             break;
           case 'l':
-            tileX++;
-            steps = 100;
+            if(tileX < levelW - 1) {
+              tileX++;
+              steps = 100;
+            }
             break;
           case 'k':
-            tileY--;
-            steps = 100;
+            if(tileY > 0) {
+              tileY--;
+              steps = 100;
+            }
             break;
           case 'j':
-            tileY++;
-            steps = 100;
+            if(tileY < levelH - 1) {
+              tileY++;
+              steps = 100;
+            }
             break;
           case 'a':
             SDL_Log("screenPos: (%d, %d), tile: (%d, %d)\n", screenPosX, screenPosY, tileX, tileY);
@@ -90,6 +97,12 @@ int Editor::draw() {
             break;
           case '=':
             setScale(getScale() + 1);
+            break;
+          case 's':
+            saveLevel("levelOut.level");
+            break;
+          case SDLK_RETURN:
+            tiles[tileY][tileX] = brush;
             break;
           default:
             break;
@@ -137,8 +150,8 @@ void Editor::renderScreen(int brush) {
     for(int j = 0; j < TILED_SCREEN_WIDTH + 1; j++) {
       int screenTilePosX = SCALED_SPRITE_WIDTH * j - tileOffsetX;
       int screenTilePosY = SCALED_SPRITE_WIDTH * i - tileOffsetY;
-      if(screenTileX + j < 0 || screenTileX + j >= 16
-          || screenTileY + i < 0 || screenTileY + i >= 5) {
+      if(screenTileX + j < 0 || screenTileX + j >= levelW
+          || screenTileY + i < 0 || screenTileY + i >= levelH) {
         drawSprite(0, screenTilePosX, screenTilePosY, SPRITE_SCALE);
       } else {
         drawSprite(tiles[screenTileY + i][screenTileX + j], screenTilePosX, screenTilePosY, SPRITE_SCALE);
@@ -181,8 +194,58 @@ void Editor::moveScreenToTile(int tx, int ty, int step) {
 void Editor::setScale(int scale) {
   SPRITE_SCALE = scale;
   SCALED_SPRITE_WIDTH = SPRITE_SCALE * SPRITE_WIDTH;
+  TILED_SCREEN_WIDTH = (640 / SCALED_SPRITE_WIDTH) + 1;
+  TILED_SCREEN_HEIGHT = (480 / SCALED_SPRITE_WIDTH) + 1;
 }
 
 int Editor::getScale() {
   return SPRITE_SCALE;
+}
+
+// currently opens a file and reads whitespace seperated integers
+// TODO checks for tile numbers within bounds
+// TODO how to handle if there is already a level loaded
+void Editor::readLevel(std::string filename) {
+  // check that tiles has no data
+  if(tiles != nullptr) {
+    SDL_Log("Attempted to read new level data while level data already loaded\n");
+    return;
+  }
+
+  // load filename in text mode
+  std::ifstream levelData(filename);
+  // make sure that the file opened
+  if(levelData.is_open()) {
+    levelData >> levelW >> levelH;
+    tiles = new int*[levelH];
+    for(int i = 0; i < levelH; i++) {
+      tiles[i] = new int[levelW];
+      for(int j = 0; j < levelW; j++) {
+        levelData >> tiles[i][j];
+      }
+    }
+  } else {
+    SDL_Log("Error loading level data file\n");
+    return;
+  }
+}
+
+void Editor::saveLevel(std::string filename) {
+  if(tiles == nullptr) {
+    SDL_Log("Attempted save without any level data\n");
+    return;
+  }
+
+  std::ofstream levelData(filename);
+  if(levelData.is_open()) {
+    levelData << levelW << " " << levelH << " ";
+    for(int i = 0; i < levelH; i++) {
+      for(int j = 0; j < levelW; j++) {
+        levelData << tiles[i][j] << " ";
+      }
+    }
+  } else {
+    SDL_Log("Failed to open file to write level data to\n");
+    return;
+  }
 }

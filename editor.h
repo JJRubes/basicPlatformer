@@ -29,13 +29,19 @@ class Editor : public Game {
     virtual int draw();
     virtual int clean();
 
+    // level data
+    void readLevel(std::string filename);
+    void saveLevel(std::string filename);
+    int levelW, levelH;
+    int** tiles;
+
     int screenPosX;
     int screenPosY;
     int tileX;
     int tileY;
     int screenTileX;
     int screenTileY;
-    int tiles[5][16];
+
     void renderScreen(int brush);
     void tileFromScreen();
     int currentTile;

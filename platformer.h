@@ -17,11 +17,33 @@ class Platformer : public Game {
     const static int SHEET_WIDTH = 16;
     SDL_Texture* spriteSheet;
 
+    float SPRITE_SCALE = 4;
+    float SCALED_SPRITE_WIDTH = SPRITE_SCALE * SPRITE_WIDTH;
+    int TILED_SCREEN_WIDTH = (640 / SCALED_SPRITE_WIDTH) + 1;
+    int TILED_SCREEN_HEIGHT = (480 / SCALED_SPRITE_WIDTH) + 1;
+
     void drawSprite(int sprite, int x, int y, int scale = 1);
 
     virtual int setup();
     virtual int draw();
     virtual int clean();
+
+    // level data
+    void readLevel(std::string filename);
+    void saveLevel(std::string filename);
+    int levelW, levelH;
+    int** tiles;
+
+    float playerPosX;
+    float playerPosY;
+    int screenX;
+    int screenY;
+    int screenTileX;
+    int screenTileY;
+
+    void renderScreen();
+    void tileFromScreen();
+    void moveScreenToPosition(float x, float y, int steps);
 };
 
 #endif
