@@ -34,32 +34,107 @@ int Platformer::draw() {
   int sprite = 0;
   int steps = 1;
 
+  float xVel = 0;
+  float yVel = 0;
+
+  float acc = 0.001;
+  float jump = 0.08;
+  float vel = 0;
+
   while(!quit) {
+    bool onGround = tiles[int(playerPosY) + 1][int(playerPosX + 0.05)] == 3 ||
+        tiles[int(playerPosY) + 1][int(playerPosX + 0.95)] == 3;
+
     SDL_Event e;
     while(SDL_PollEvent(&e)) {
       if(e.type == SDL_QUIT) {
         quit = true;
-      } else if(e.type == SDL_KEYDOWN) {
+      } else if(e.type == SDL_KEYDOWN && e.key.repeat == 0) {
         switch(e.key.keysym.sym) {
           case 'q':
             quit = true;
             break;
-          case SDLK_LEFT:
-            playerPosX -= 0.5;
-            break;
-          case SDLK_RIGHT:
-            playerPosX += 0.5;
-            break;
           case SDLK_UP:
-            playerPosY -= 0.5;
+            if(onGround)
+              yVel -= jump;
             break;
           case SDLK_DOWN:
-            playerPosY += 0.5;
+            if(onGround)
+              yVel += jump;
             break;
           default:
             break;
         }
       }
+    }
+
+    // stack overflow SDL 2.0 Key repeat and delay
+    // note that you need a SDL_PollEvent for this to be not empty
+    const Uint8* keyStates = SDL_GetKeyboardState(nullptr);
+
+    // add acceleration x to velocity
+    if(keyStates[SDL_SCANCODE_LEFT]) {
+      if(onGround)
+        xVel -= acc;
+      else
+        xVel -= 0.2 * acc; // less control in the air
+    }
+    if(keyStates[SDL_SCANCODE_RIGHT]) {
+      if(onGround)
+        xVel += acc;
+      else
+        xVel += 0.2 * acc;
+    }
+
+    if(onGround)
+      xVel *= 0.95; // friction
+
+    // max speed
+    if(xVel > 0.04) {
+      xVel = 0.04;
+    } else if(xVel < -0.04) {
+      xVel = -0.04;
+    }
+
+    for(int i = 0; i <= 1; i++) {
+      for(int j = 0; j <= 1; j++) {
+        int nextPosX = int(playerPosX + xVel + 0.95 * j);
+        int PosY = int(playerPosY + 0.95 * i);
+        if(nextPosX >= 0 && nextPosX < levelW && PosY >= 0 && PosY < levelH) {
+          if(tiles[PosY][nextPosX] == 3) {
+            xVel = 0;
+          }
+        }
+      }
+    }
+
+    if(onGround) {
+      if(yVel > 0) {
+        yVel = 0;
+      }
+    } else {
+      yVel += 0.001;
+    }
+
+    if(yVel > 0.06) {
+      yVel = 0.06;
+    } else if(yVel < -0.08) {
+      yVel = -0.08;
+    }
+
+    playerPosX += xVel;
+    playerPosY += yVel;
+
+    if(playerPosX < 0) {
+      playerPosX = 0;
+    } else if(playerPosX > levelW - 1) {
+      playerPosX = levelW - 1;
+    }
+
+    if(playerPosY < 0) {
+      playerPosY = 0;
+    } else if(playerPosY > levelH - 1) {
+      playerPosY = levelH - 1;
     }
 
     moveScreenToPosition(playerPosX, playerPosY, steps);
@@ -77,29 +152,15 @@ void Platformer::renderScreen() {
   SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
   SDL_RenderClear(renderer);
 
-  // get the x and y offsets from the top left of the nearest tile
-  int tileOffsetX = screenX % int(SCALED_SPRITE_WIDTH);
-  if(screenX < 0) {
-    tileOffsetX += SCALED_SPRITE_WIDTH;
-  }
-  int tileOffsetY = screenY % int(SCALED_SPRITE_WIDTH);
-  if(screenY < 0) {
-    tileOffsetY += SCALED_SPRITE_WIDTH;
-  }
-
-  // add one so that during scrolling there isn't a gap
-  for(int i = 0; i < TILED_SCREEN_HEIGHT + 1; i++) {
-    for(int j = 0; j < TILED_SCREEN_WIDTH + 1; j++) {
-      int screenTilePosX = SCALED_SPRITE_WIDTH * j - tileOffsetX;
-      int screenTilePosY = SCALED_SPRITE_WIDTH * i - tileOffsetY;
-      if(screenTileX + j < 0 || screenTileX + j >= levelW
-          || screenTileY + i < 0 || screenTileY + i >= levelH) {
-        drawSprite(0, screenTilePosX, screenTilePosY, SPRITE_SCALE);
-      } else {
-        drawSprite(tiles[screenTileY + i][screenTileX + j], screenTilePosX, screenTilePosY, SPRITE_SCALE);
-      }
+  // instead of doing anything fancy, just draw everything
+  // works surprisingly well so far
+  for(int i = 0; i < levelH; i++) {
+    for(int j = 0; j < levelW; j++) {
+      drawSprite(tiles[i][j], j * SCALED_SPRITE_WIDTH - screenX, i * SCALED_SPRITE_WIDTH - screenY, SPRITE_SCALE);
     }
   }
+
+  drawSprite(10, int(playerPosX * SCALED_SPRITE_WIDTH) - screenX, int(playerPosY * SCALED_SPRITE_WIDTH) - screenY, SPRITE_SCALE);
 
   SDL_RenderPresent(renderer);
 }
@@ -127,6 +188,18 @@ void Platformer::moveScreenToPosition(float x, float y, int step) {
   int centredY = playerWorldPosY - 480 / 2 + SCALED_SPRITE_WIDTH / 2;
   screenX = screenX + (1.0 / step) * (centredX - screenX);
   screenY = screenY + (1.0 / step) * (centredY - screenY);
+
+  if(screenX < 0) {
+    screenX = 0;
+  } else if(screenX > levelW * SCALED_SPRITE_WIDTH - 640) {
+    screenX = levelW * SCALED_SPRITE_WIDTH - 640;
+  }
+
+  if(screenY < 0) {
+    screenY = 0;
+  } else if(screenY > levelH * SCALED_SPRITE_WIDTH - 480) {
+    screenY = levelH * SCALED_SPRITE_WIDTH - 480;
+  }
 }
 
 int Platformer::clean() {
@@ -156,30 +229,16 @@ void Platformer::readLevel(std::string filename) {
       tiles[i] = new int[levelW];
       for(int j = 0; j < levelW; j++) {
         levelData >> tiles[i][j];
+
+        // set player position to the spawner block
+        if(tiles[i][j] == 67) {
+          playerPosX = j;
+          playerPosY = i;
+        }
       }
     }
   } else {
     SDL_Log("Error loading level data file\n");
-    return;
-  }
-}
-
-void Platformer::saveLevel(std::string filename) {
-  if(tiles == nullptr) {
-    SDL_Log("Attempted save without any level data\n");
-    return;
-  }
-
-  std::ofstream levelData(filename);
-  if(levelData.is_open()) {
-    levelData << levelW << " " << levelH << " ";
-    for(int i = 0; i < levelH; i++) {
-      for(int j = 0; j < levelW; j++) {
-        levelData << tiles[i][j] << " ";
-      }
-    }
-  } else {
-    SDL_Log("Failed to open file to write level data to\n");
     return;
   }
 }
