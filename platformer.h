@@ -36,6 +36,9 @@ class Platformer : public Game {
 
     float playerPosX;
     float playerPosY;
+    double xVel;
+    double yVel;
+    void physics(double deltaTime, bool jumping, bool lefting, bool righting);
     int screenX;
     int screenY;
     int screenTileX;

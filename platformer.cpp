@@ -24,27 +24,117 @@ int Platformer::setup() {
   }
 
   readLevel("level1.txt");
+
+  xVel = 0;
+  yVel = 0;
+
   // set colour to magenta to make it obvious
   SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
   return 0;
 }
 
+void Platformer::physics(double deltaTime,
+    bool jumping, bool lefting, bool righting) {
+  float acc = 0.00003;
+  float jump = 0.008;
+  float gravity = 0.00001;
+  float maxXVel = 0.008;
+
+  bool onGround = tiles[int(playerPosY) + 1][int(playerPosX + 0.05)] == 3 ||
+      tiles[int(playerPosY) + 1][int(playerPosX + 0.95)] == 3;
+
+  if(jumping && onGround)
+    yVel -= jump;
+
+  if(lefting) {
+    if(onGround)
+      xVel -= acc * deltaTime;
+    else
+      xVel -= 0.2 * acc; // less control in the air
+  }
+  
+  if(righting) {
+    if(onGround)
+      xVel += acc * deltaTime;
+    else
+      xVel += 0.2 * acc * deltaTime;
+  }
+
+  // not sure how to incorporate friction with delta time
+  if(onGround && !lefting && !righting)
+    xVel *= 0.995; // friction
+
+  // max speed
+  if(xVel > maxXVel) {
+    xVel = maxXVel;
+  } else if(xVel < -maxXVel) {
+    xVel = -maxXVel;
+  }
+
+  // check for block collision
+  for(int i = 0; i <= 1; i++) {
+    for(int j = 0; j <= 1; j++) {
+      int nextPosX = int(playerPosX + xVel + 0.95 * j);
+      int PosY = int(playerPosY + 0.95 * i);
+      if(nextPosX >= 0 && nextPosX < levelW && PosY >= 0 && PosY < levelH) {
+        if(tiles[PosY][nextPosX] == 3) {
+          xVel = 0;
+        }
+      }
+    }
+  }
+
+  if(onGround) {
+    if(yVel > 0) {
+      yVel = 0;
+    }
+  } else {
+    yVel += gravity * deltaTime;
+  }
+
+  if(yVel > 0.06) {
+    yVel = 0.06;
+  } else if(yVel < -0.08) {
+    yVel = -0.08;
+  }
+
+  playerPosX += xVel * deltaTime;
+  playerPosY += yVel * deltaTime;
+
+  if(playerPosX < 0) {
+    playerPosX = 0;
+    xVel = 0;
+  } else if(playerPosX > levelW - 1) {
+    playerPosX = levelW - 1;
+    xVel = 0;
+  }
+
+  if(playerPosY < 0) {
+    playerPosY = 0;
+    yVel = 0;
+  } else if(playerPosY > levelH - 1) {
+    playerPosY = levelH - 1;
+    yVel = 0;
+  }
+}
+
 int Platformer::draw() {
   bool quit = false;
-  int sprite = 0;
   int steps = 1;
 
-  float xVel = 0;
-  float yVel = 0;
-
-  float acc = 0.001;
-  float jump = 0.08;
-  float vel = 0;
+  Uint64 NOW = SDL_GetPerformanceCounter();
+  Uint64 LAST = 0; 
+  double deltaTime = 0;
 
   while(!quit) {
-    bool onGround = tiles[int(playerPosY) + 1][int(playerPosX + 0.05)] == 3 ||
-        tiles[int(playerPosY) + 1][int(playerPosX + 0.95)] == 3;
+    // https://gamedev.stackexchange.com/questions/110825/how-to-calculate-delta-time-with-sdl
+    LAST = NOW;
+    NOW = SDL_GetPerformanceCounter();
+    deltaTime = (double)((NOW - LAST) * 1000 / (double)SDL_GetPerformanceFrequency());
 
+    bool jumping = false;
+    bool lefting = false;
+    bool righting = false;
     SDL_Event e;
     while(SDL_PollEvent(&e)) {
       if(e.type == SDL_QUIT) {
@@ -55,12 +145,7 @@ int Platformer::draw() {
             quit = true;
             break;
           case SDLK_UP:
-            if(onGround)
-              yVel -= jump;
-            break;
-          case SDLK_DOWN:
-            if(onGround)
-              yVel += jump;
+            jumping = true;
             break;
           default:
             break;
@@ -74,68 +159,13 @@ int Platformer::draw() {
 
     // add acceleration x to velocity
     if(keyStates[SDL_SCANCODE_LEFT]) {
-      if(onGround)
-        xVel -= acc;
-      else
-        xVel -= 0.2 * acc; // less control in the air
+      lefting = true;
     }
     if(keyStates[SDL_SCANCODE_RIGHT]) {
-      if(onGround)
-        xVel += acc;
-      else
-        xVel += 0.2 * acc;
+      righting = true;
     }
 
-    if(onGround)
-      xVel *= 0.95; // friction
-
-    // max speed
-    if(xVel > 0.04) {
-      xVel = 0.04;
-    } else if(xVel < -0.04) {
-      xVel = -0.04;
-    }
-
-    for(int i = 0; i <= 1; i++) {
-      for(int j = 0; j <= 1; j++) {
-        int nextPosX = int(playerPosX + xVel + 0.95 * j);
-        int PosY = int(playerPosY + 0.95 * i);
-        if(nextPosX >= 0 && nextPosX < levelW && PosY >= 0 && PosY < levelH) {
-          if(tiles[PosY][nextPosX] == 3) {
-            xVel = 0;
-          }
-        }
-      }
-    }
-
-    if(onGround) {
-      if(yVel > 0) {
-        yVel = 0;
-      }
-    } else {
-      yVel += 0.001;
-    }
-
-    if(yVel > 0.06) {
-      yVel = 0.06;
-    } else if(yVel < -0.08) {
-      yVel = -0.08;
-    }
-
-    playerPosX += xVel;
-    playerPosY += yVel;
-
-    if(playerPosX < 0) {
-      playerPosX = 0;
-    } else if(playerPosX > levelW - 1) {
-      playerPosX = levelW - 1;
-    }
-
-    if(playerPosY < 0) {
-      playerPosY = 0;
-    } else if(playerPosY > levelH - 1) {
-      playerPosY = levelH - 1;
-    }
+    physics(deltaTime, jumping, lefting, righting);
 
     moveScreenToPosition(playerPosX, playerPosY, steps);
     if(steps > 1)
