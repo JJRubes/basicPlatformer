@@ -40,8 +40,12 @@ void Platformer::physics(double deltaTime,
   float gravity = 0.00001;
   float maxXVel = 0.008;
 
-  bool onGround = tiles[int(playerPosY) + 1][int(playerPosX + 0.05)] == 3 ||
-      tiles[int(playerPosY) + 1][int(playerPosX + 0.95)] == 3;
+  float playerWidth = 0.5;
+  bool onGround = tiles[int(playerPosY) + 1][int(playerPosX + playerWidth / 2)] == 3 ||
+      tiles[int(playerPosY) + 1][int(playerPosX + 1 - playerWidth / 2)] == 3;
+
+  // if(onGround)
+  //   playerPosY = floor(playerPosY);
 
   if(jumping && onGround)
     yVel -= jump;
@@ -57,12 +61,16 @@ void Platformer::physics(double deltaTime,
     if(onGround)
       xVel += acc * deltaTime;
     else
-      xVel += 0.2 * acc * deltaTime;
+      xVel += 0.5 * acc * deltaTime;
   }
 
   // not sure how to incorporate friction with delta time
   if(onGround && !lefting && !righting)
     xVel *= 0.995; // friction
+
+  // the falling slowdown is a bit less
+  if(!onGround && !lefting && !righting)
+    xVel *= 0.999; // friction
 
   // max speed
   if(xVel > maxXVel) {
@@ -72,9 +80,11 @@ void Platformer::physics(double deltaTime,
   }
 
   // check for block collision
+  // this should be improved by not zeroing the value but finding how much space is left to move
+  // it should also have more thought into how it interacts with yVel
   for(int i = 0; i <= 1; i++) {
     for(int j = 0; j <= 1; j++) {
-      int nextPosX = int(playerPosX + xVel + 0.95 * j);
+      int nextPosX = int(playerPosX + xVel + 0.5 * j + 0.25);
       int PosY = int(playerPosY + 0.95 * i);
       if(nextPosX >= 0 && nextPosX < levelW && PosY >= 0 && PosY < levelH) {
         if(tiles[PosY][nextPosX] == 3) {
@@ -82,6 +92,12 @@ void Platformer::physics(double deltaTime,
         }
       }
     }
+  }
+
+  if(yVel < 0 &&
+     (tiles[int(playerPosY + yVel)][int(playerPosX + playerWidth / 2)] == 3 ||
+      tiles[int(playerPosY + yVel)][int(playerPosX + 1 - playerWidth / 2)] == 3)) {
+    yVel = 0;
   }
 
   if(onGround) {
@@ -145,6 +161,7 @@ int Platformer::draw() {
             quit = true;
             break;
           case SDLK_UP:
+          case SDLK_SPACE:
             jumping = true;
             break;
           default:
@@ -190,7 +207,7 @@ void Platformer::renderScreen() {
     }
   }
 
-  drawSprite(10, int(playerPosX * SCALED_SPRITE_WIDTH) - screenX, int(playerPosY * SCALED_SPRITE_WIDTH) - screenY, SPRITE_SCALE);
+  drawSprite(12, int(playerPosX * SCALED_SPRITE_WIDTH) - screenX, int(playerPosY * SCALED_SPRITE_WIDTH) - screenY, SPRITE_SCALE);
 
   SDL_RenderPresent(renderer);
 }

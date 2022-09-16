@@ -62,8 +62,12 @@ int Editor::draw() {
             quit = true;
             break;
           case 'n':
-            brush++;
-            brush %= (SHEET_WIDTH * SHEET_HEIGHT);
+            if(brush == 64)
+              brush = 3;
+            else
+              brush = 64;
+            // brush++;
+            // brush %= (SHEET_WIDTH * SHEET_HEIGHT);
             break;
           case 'h':
             if(tileX > 0) {
@@ -222,6 +226,8 @@ void Editor::readLevel(std::string filename) {
       tiles[i] = new int[levelW];
       for(int j = 0; j < levelW; j++) {
         levelData >> tiles[i][j];
+        if(tiles[i][j] <= 0 || tiles[i][j] >= 80)
+          tiles[i][j] = 64;
       }
     }
   } else {
