@@ -35,10 +35,10 @@ int Platformer::setup() {
 
 void Platformer::physics(double deltaTime,
     bool jumping, bool lefting, bool righting) {
-  float acc = 0.00003;
-  float jump = 0.008;
-  float gravity = 0.00001;
-  float maxXVel = 0.008;
+  float acc = 0.000015;
+  float jump = 0.01;
+  float gravity = 0.00003;
+  float maxXVel = 0.006;
 
   float playerWidth = 0.5;
   bool onGround = tiles[int(playerPosY) + 1][int(playerPosX + playerWidth / 2)] == 3 ||
@@ -47,21 +47,21 @@ void Platformer::physics(double deltaTime,
   // if(onGround)
   //   playerPosY = floor(playerPosY);
 
-  if(jumping && onGround)
+  if(jumping && onGround && yVel == 0)
     yVel -= jump;
 
   if(lefting) {
     if(onGround)
       xVel -= acc * deltaTime;
     else
-      xVel -= 0.2 * acc; // less control in the air
+      xVel -= 0.75 * acc; // less control in the air
   }
   
   if(righting) {
     if(onGround)
       xVel += acc * deltaTime;
     else
-      xVel += 0.5 * acc * deltaTime;
+      xVel += 0.75 * acc * deltaTime;
   }
 
   // not sure how to incorporate friction with delta time
@@ -104,6 +104,8 @@ void Platformer::physics(double deltaTime,
     if(yVel > 0) {
       yVel = 0;
     }
+  } else if(jumping) {
+    yVel += 0.5 * gravity * deltaTime;
   } else {
     yVel += gravity * deltaTime;
   }
@@ -160,10 +162,6 @@ int Platformer::draw() {
           case 'q':
             quit = true;
             break;
-          case SDLK_UP:
-          case SDLK_SPACE:
-            jumping = true;
-            break;
           default:
             break;
         }
@@ -180,6 +178,9 @@ int Platformer::draw() {
     }
     if(keyStates[SDL_SCANCODE_RIGHT]) {
       righting = true;
+    }
+    if(keyStates[SDL_SCANCODE_UP] || keyStates[SDL_SCANCODE_SPACE]) {
+      jumping = true;
     }
 
     physics(deltaTime, jumping, lefting, righting);

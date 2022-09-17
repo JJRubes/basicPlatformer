@@ -17,7 +17,7 @@ class Platformer : public Game {
     const static int SHEET_WIDTH = 16;
     SDL_Texture* spriteSheet;
 
-    float SPRITE_SCALE = 4;
+    float SPRITE_SCALE = 3;
     float SCALED_SPRITE_WIDTH = SPRITE_SCALE * SPRITE_WIDTH;
     int TILED_SCREEN_WIDTH = (640 / SCALED_SPRITE_WIDTH) + 1;
     int TILED_SCREEN_HEIGHT = (480 / SCALED_SPRITE_WIDTH) + 1;
