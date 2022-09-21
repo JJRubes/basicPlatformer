@@ -27,26 +27,43 @@ int Platformer::setup() {
 
   xVel = 0;
   yVel = 0;
+  xRemainder = 0;
+  yRemainder = 0;
 
   // set colour to magenta to make it obvious
   SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
   return 0;
 }
 
+bool Platformer::collides(int x, int y) {
+  // check for collision with edge
+  if(x + leftPlayerOffset < 0 || (x + rightPlayerOffset) / SPRITE_WIDTH >= levelW
+      || y < 0 || (y + SPRITE_WIDTH - 1) / SPRITE_WIDTH >= levelH)
+    return true;
+
+  // top left
+  bool collision = tiles[y / SPRITE_WIDTH][(x + leftPlayerOffset) / SPRITE_WIDTH] == 3;
+  // top right
+  collision = collision || tiles[y / SPRITE_WIDTH][(x + rightPlayerOffset) / SPRITE_WIDTH] == 3;
+  // bottom left
+  collision = collision || tiles[(y + SPRITE_WIDTH - 1) / SPRITE_WIDTH][(x + leftPlayerOffset) / SPRITE_WIDTH] == 3;
+  // bottom right
+  collision = collision || tiles[(y + SPRITE_WIDTH - 1) / SPRITE_WIDTH][(x + rightPlayerOffset) / SPRITE_WIDTH] == 3;
+  return collision;
+}
+
 void Platformer::physics(double deltaTime,
     bool jumping, bool lefting, bool righting) {
-  float acc = 0.000015;
-  float jump = 0.01;
-  float gravity = 0.00003;
-  float maxXVel = 0.006;
+  double acc = 0.0015;
+  double jump = 100;
+  double gravity = 0.0005;
+  double maxXVel = 0.2;
+  double maxYVel = 0.25;
 
-  float playerWidth = 0.5;
-  bool onGround = tiles[int(playerPosY) + 1][int(playerPosX + playerWidth / 2)] == 3 ||
-      tiles[int(playerPosY) + 1][int(playerPosX + 1 - playerWidth / 2)] == 3;
+  // this assumes that the player is not in a wall
+  bool onGround = collides(posX, posY + SPRITE_WIDTH);
 
-  // if(onGround)
-  //   playerPosY = floor(playerPosY);
-
+  // yVel check seems redundant now that everything is pixel aligned
   if(jumping && onGround && yVel == 0)
     yVel -= jump;
 
@@ -80,65 +97,61 @@ void Platformer::physics(double deltaTime,
   }
 
   // check for block collision
-  // this should be improved by not zeroing the value but finding how much space is left to move
-  // it should also have more thought into how it interacts with yVel
-  for(int i = 0; i <= 1; i++) {
-    for(int j = 0; j <= 1; j++) {
-      int nextPosX = int(playerPosX + xVel + 0.5 * j + 0.25);
-      int PosY = int(playerPosY + 0.95 * i);
-      if(nextPosX >= 0 && nextPosX < levelW && PosY >= 0 && PosY < levelH) {
-        if(tiles[PosY][nextPosX] == 3) {
-          xVel = 0;
-        }
+  // based off of celeste collision
+  // https://maddythorson.medium.com/celeste-and-towerfall-physics-d24bd2ae0fc5
+  xRemainder += xVel;
+  int move = round(xRemainder);
+
+  if(move != 0) {
+    xRemainder -= move;
+    int sign = move > 0 ? 1 : -1;
+
+    while(move != 0) {
+      if(collides(posX + sign, posY)) {
+        // collision
+        xVel = 0;
+        break;
+      } else {
+        posX += sign;
+        move -= sign;
       }
     }
   }
 
-  if(yVel < 0 &&
-     (tiles[int(playerPosY + yVel)][int(playerPosX + playerWidth / 2)] == 3 ||
-      tiles[int(playerPosY + yVel)][int(playerPosX + 1 - playerWidth / 2)] == 3)) {
-    yVel = 0;
-  }
-
-  if(onGround) {
-    if(yVel > 0) {
-      yVel = 0;
-    }
-  } else if(jumping) {
+  if(jumping) {
     yVel += 0.5 * gravity * deltaTime;
   } else {
     yVel += gravity * deltaTime;
   }
 
-  if(yVel > 0.06) {
-    yVel = 0.06;
-  } else if(yVel < -0.08) {
-    yVel = -0.08;
+  if(yVel > maxYVel) {
+    yVel = maxYVel;
+  } else if(yVel < -maxYVel) {
+    yVel = -maxYVel;
   }
 
-  playerPosX += xVel * deltaTime;
-  playerPosY += yVel * deltaTime;
+  yRemainder += yVel;
+  move = round(yRemainder);
 
-  if(playerPosX < 0) {
-    playerPosX = 0;
-    xVel = 0;
-  } else if(playerPosX > levelW - 1) {
-    playerPosX = levelW - 1;
-    xVel = 0;
-  }
+  if(move != 0) {
+    yRemainder -= move;
+    int sign = move > 0 ? 1 : -1;
 
-  if(playerPosY < 0) {
-    playerPosY = 0;
-    yVel = 0;
-  } else if(playerPosY > levelH - 1) {
-    playerPosY = levelH - 1;
-    yVel = 0;
+    while(move != 0) {
+      if(collides(posX, posY + sign)) {
+        // collision
+        yVel = 0;
+        break;
+      } else {
+        posY += sign;
+        move -= sign;
+      }
+    }
   }
 }
 
 int Platformer::draw() {
   bool quit = false;
-  int steps = 1;
 
   Uint64 NOW = SDL_GetPerformanceCounter();
   Uint64 LAST = 0; 
@@ -185,9 +198,11 @@ int Platformer::draw() {
 
     physics(deltaTime, jumping, lefting, righting);
 
-    moveScreenToPosition(playerPosX, playerPosY, steps);
-    if(steps > 1)
-      steps--;
+    // this causes some artifacts, including screen wobble
+    // but if I do something like posX + xRemainder the pixel snapping becomes jarring
+    // and against walls and the floor the screen vibrates
+    // moveScreenToPosition(double(posX) / SPRITE_WIDTH, double(posY) / SPRITE_WIDTH, 100);
+    moveScreenToPosition((posX + xRemainder) / SPRITE_WIDTH, (posY + yRemainder) / SPRITE_WIDTH, 100);
     renderScreen();
   }
 
@@ -208,7 +223,7 @@ void Platformer::renderScreen() {
     }
   }
 
-  drawSprite(12, int(playerPosX * SCALED_SPRITE_WIDTH) - screenX, int(playerPosY * SCALED_SPRITE_WIDTH) - screenY, SPRITE_SCALE);
+  drawSprite(12, posX * SPRITE_SCALE - screenX, posY * SPRITE_SCALE - screenY, SPRITE_SCALE);
 
   SDL_RenderPresent(renderer);
 }
@@ -280,8 +295,8 @@ void Platformer::readLevel(std::string filename) {
 
         // set player position to the spawner block
         if(tiles[i][j] == 67) {
-          playerPosX = j;
-          playerPosY = i;
+          posX = j * SPRITE_WIDTH;
+          posY = i * SPRITE_WIDTH;
         }
       }
     }

@@ -34,11 +34,16 @@ class Platformer : public Game {
     int levelW, levelH;
     int** tiles;
 
-    float playerPosX;
-    float playerPosY;
+    int leftPlayerOffset = SPRITE_WIDTH / 4;
+    int rightPlayerOffset = 3 * SPRITE_WIDTH / 4;
+    int posX;
+    int posY;
+    double xRemainder;
+    double yRemainder;
     double xVel;
     double yVel;
     void physics(double deltaTime, bool jumping, bool lefting, bool righting);
+    bool collides(int posX, int posY);
     int screenX;
     int screenY;
     int screenTileX;
