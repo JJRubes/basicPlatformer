@@ -24,11 +24,16 @@ int Platformer::setup() {
   }
 
   readLevel("level1.txt");
+  moveScreenToPosition(posX, posY, 1);
 
   xVel = 0;
   yVel = 0;
   xRemainder = 0;
   yRemainder = 0;
+  vXRemainder = 0;
+  vYRemainder = 0;
+  screenXRemainder = 0;
+  screenYRemainder = 0;
 
   // set colour to magenta to make it obvious
   SDL_SetRenderDrawColor(renderer, 0xff, 0x00, 0xff, 0xff);
@@ -104,19 +109,30 @@ void Platformer::physics(double deltaTime,
 
   if(move != 0) {
     xRemainder -= move;
+    vXRemainder = xRemainder;
     int sign = move > 0 ? 1 : -1;
 
     while(move != 0) {
       if(collides(posX + sign, posY)) {
         // collision
         xVel = 0;
+        vXRemainder = 0;
         break;
       } else {
         posX += sign;
         move -= sign;
       }
     }
+    // vXRemainder = xRemainder;
+  } else {
+    int sign = xVel > 0 ? 1 : -1; // maybe this is the culprit for the right wall flicking?
+    if(collides(posX + sign, posY)) {
+      vXRemainder = 0; // this might need to include a positive/negative check for left or right side
+    } else {
+      vXRemainder = xRemainder;
+    }
   }
+
 
   if(jumping) {
     yVel += 0.5 * gravity * deltaTime;
@@ -135,17 +151,26 @@ void Platformer::physics(double deltaTime,
 
   if(move != 0) {
     yRemainder -= move;
+    vYRemainder = yRemainder;
     int sign = move > 0 ? 1 : -1;
 
     while(move != 0) {
       if(collides(posX, posY + sign)) {
         // collision
         yVel = 0;
+        vYRemainder = 0;
         break;
       } else {
         posY += sign;
         move -= sign;
       }
+    }
+  } else {
+    int sign = yVel > 0 ? 1 : -1;
+    if(collides(posX, posY + sign)) {
+      vYRemainder = 0;
+    } else {
+      vYRemainder = yRemainder;
     }
   }
 }
@@ -192,6 +217,7 @@ int Platformer::draw() {
     if(keyStates[SDL_SCANCODE_RIGHT]) {
       righting = true;
     }
+    // TODO there is a small window where this will drop input
     if(keyStates[SDL_SCANCODE_UP] || keyStates[SDL_SCANCODE_SPACE]) {
       jumping = true;
     }
@@ -202,7 +228,7 @@ int Platformer::draw() {
     // but if I do something like posX + xRemainder the pixel snapping becomes jarring
     // and against walls and the floor the screen vibrates
     // moveScreenToPosition(double(posX) / SPRITE_WIDTH, double(posY) / SPRITE_WIDTH, 100);
-    moveScreenToPosition((posX + xRemainder) / SPRITE_WIDTH, (posY + yRemainder) / SPRITE_WIDTH, 100);
+    moveScreenToPosition(posX + vXRemainder, posY + vYRemainder, 20);
     renderScreen();
   }
 
@@ -223,7 +249,8 @@ void Platformer::renderScreen() {
     }
   }
 
-  drawSprite(12, posX * SPRITE_SCALE - screenX, posY * SPRITE_SCALE - screenY, SPRITE_SCALE);
+  // drawSprite(12, posX * SPRITE_SCALE - screenX, posY * SPRITE_SCALE - screenY, SPRITE_SCALE);
+  drawSprite(12, (posX + vXRemainder) * SPRITE_SCALE - screenX, (posY + vYRemainder) * SPRITE_SCALE - screenY, SPRITE_SCALE);
 
   SDL_RenderPresent(renderer);
 }
@@ -239,18 +266,25 @@ void Platformer::tileFromScreen() {
   }
 }
 
+// TODO bug that means that it doesn't follow the player for a small amount to the right of the centre of screen
 // move the screen so that it is centred on a given tile
-void Platformer::moveScreenToPosition(float x, float y, int step) {
+void Platformer::moveScreenToPosition(double x, double y, int step) {
   // find the top left of the player
-  int playerWorldPosX = int(x * SCALED_SPRITE_WIDTH);
-  int playerWorldPosY = int(y * SCALED_SPRITE_WIDTH);
+  int playerWorldPosX = int(x * SPRITE_SCALE);
+  int playerWorldPosY = int(y * SPRITE_SCALE);
 
   // subtract half the screen width to centre the top-left
   // then add half of the sprite width to centre on the middle of the tile
-  int centredX = playerWorldPosX - 640 / 2 + SCALED_SPRITE_WIDTH / 2;
+  int centredX = playerWorldPosX - 640 / 2 + SCALED_SPRITE_WIDTH;
   int centredY = playerWorldPosY - 480 / 2 + SCALED_SPRITE_WIDTH / 2;
-  screenX = screenX + (1.0 / step) * (centredX - screenX);
-  screenY = screenY + (1.0 / step) * (centredY - screenY);
+  screenXRemainder += double(centredX - screenX) / double(step);
+  int moveX = round(screenXRemainder);
+  screenXRemainder -= moveX;
+  screenX += moveX;
+  screenYRemainder += (1.0 / step) * (centredY - screenY);
+  int moveY = round(screenYRemainder);
+  screenYRemainder -= moveY;
+  screenY += moveY;
 
   if(screenX < 0) {
     screenX = 0;

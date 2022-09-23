@@ -40,18 +40,22 @@ class Platformer : public Game {
     int posY;
     double xRemainder;
     double yRemainder;
+    double vXRemainder;
+    double vYRemainder;
     double xVel;
     double yVel;
     void physics(double deltaTime, bool jumping, bool lefting, bool righting);
     bool collides(int posX, int posY);
     int screenX;
     int screenY;
+    double screenXRemainder;
+    double screenYRemainder;
     int screenTileX;
     int screenTileY;
 
     void renderScreen();
     void tileFromScreen();
-    void moveScreenToPosition(float x, float y, int steps);
+    void moveScreenToPosition(double x, double y, int steps);
 };
 
 #endif
