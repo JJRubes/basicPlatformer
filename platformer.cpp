@@ -63,12 +63,17 @@ bool Platformer::collides(int x, int y) {
 
 void Platformer::physics(double deltaTime,
     bool jumping, bool lefting, bool righting) {
-  double acc = 0.0005;
+  // double acc = 0.0005;
+  double acc = 0.00025;
   double jump = 100;
-  double gravity = 0.0005;
-  double maxXVel = 0.2;
-  double maxYVel = 0.25;
-  double sustainedJump = 0.33;
+  // double gravity = 0.0005;
+  double gravity = 0.00025;
+  // double maxXVel = 0.2;
+  double maxXVel = 0.1;
+  // double maxYVel = 0.25;
+  double maxYVel = 0.08;
+  // double sustainedJump = 0.33;
+  double sustainedJump = 0.12;
 
   // this assumes that the player is not in a wall
   bool onGround = collides(posX, posY + SPRITE_WIDTH);
@@ -81,7 +86,7 @@ void Platformer::physics(double deltaTime,
     if(onGround)
       xVel -= acc * deltaTime;
     else
-      xVel -= 0.75 * acc; // less control in the air
+      xVel -= 0.75 * acc * deltaTime; // less control in the air
   }
   
   if(righting) {
@@ -208,7 +213,7 @@ int Platformer::draw() {
     // https://gamedev.stackexchange.com/questions/110825/how-to-calculate-delta-time-with-sdl
     LAST = NOW;
     NOW = SDL_GetPerformanceCounter();
-    deltaTime = (double)((NOW - LAST) * 1000 / (double)SDL_GetPerformanceFrequency());
+    deltaTime = (double)(((NOW - LAST) * 1000) / (double)SDL_GetPerformanceFrequency());
 
     bool jumping = false;
     bool lefting = false;
