@@ -45,6 +45,7 @@ class Platformer : public Game {
     double xVel;
     double yVel;
     void physics(double deltaTime, bool jumping, bool lefting, bool righting);
+    bool collidable(int tile);
     bool collides(int posX, int posY);
     int screenX;
     int screenY;

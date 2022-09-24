@@ -69,24 +69,28 @@ int Editor::draw() {
             // brush++;
             // brush %= (SHEET_WIDTH * SHEET_HEIGHT);
             break;
+          case SDLK_LEFT:
           case 'h':
             if(tileX > 0) {
               tileX--;
               steps = 100;
             }
             break;
+          case SDLK_RIGHT:
           case 'l':
             if(tileX < levelW - 1) {
               tileX++;
               steps = 100;
             }
             break;
+          case SDLK_UP:
           case 'k':
             if(tileY > 0) {
               tileY--;
               steps = 100;
             }
             break;
+          case SDLK_DOWN:
           case 'j':
             if(tileY < levelH - 1) {
               tileY++;

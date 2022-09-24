@@ -24,7 +24,6 @@ int Platformer::setup() {
   }
 
   readLevel("level1.txt");
-  moveScreenToPosition(posX, posY, 1);
 
   xVel = 0;
   yVel = 0;
@@ -40,6 +39,11 @@ int Platformer::setup() {
   return 0;
 }
 
+bool Platformer::collidable(int tile) {
+  return tile == 3 || tile == 6 || tile == 28 || tile == 29 || tile == 30 || tile == 34 || tile == 50
+    || tile == 51;
+}
+
 bool Platformer::collides(int x, int y) {
   // check for collision with edge
   if(x + leftPlayerOffset < 0 || (x + rightPlayerOffset) / SPRITE_WIDTH >= levelW
@@ -47,23 +51,24 @@ bool Platformer::collides(int x, int y) {
     return true;
 
   // top left
-  bool collision = tiles[y / SPRITE_WIDTH][(x + leftPlayerOffset) / SPRITE_WIDTH] == 3;
+  bool collision = collidable(tiles[y / SPRITE_WIDTH][(x + leftPlayerOffset) / SPRITE_WIDTH]);
   // top right
-  collision = collision || tiles[y / SPRITE_WIDTH][(x + rightPlayerOffset) / SPRITE_WIDTH] == 3;
+  collision = collision || collidable(tiles[y / SPRITE_WIDTH][(x + rightPlayerOffset) / SPRITE_WIDTH]);
   // bottom left
-  collision = collision || tiles[(y + SPRITE_WIDTH - 1) / SPRITE_WIDTH][(x + leftPlayerOffset) / SPRITE_WIDTH] == 3;
+  collision = collision || collidable(tiles[(y + SPRITE_WIDTH - 1) / SPRITE_WIDTH][(x + leftPlayerOffset) / SPRITE_WIDTH]);
   // bottom right
-  collision = collision || tiles[(y + SPRITE_WIDTH - 1) / SPRITE_WIDTH][(x + rightPlayerOffset) / SPRITE_WIDTH] == 3;
+  collision = collision || collidable(tiles[(y + SPRITE_WIDTH - 1) / SPRITE_WIDTH][(x + rightPlayerOffset) / SPRITE_WIDTH]);
   return collision;
 }
 
 void Platformer::physics(double deltaTime,
     bool jumping, bool lefting, bool righting) {
-  double acc = 0.0015;
+  double acc = 0.0005;
   double jump = 100;
   double gravity = 0.0005;
   double maxXVel = 0.2;
   double maxYVel = 0.25;
+  double sustainedJump = 0.33;
 
   // this assumes that the player is not in a wall
   bool onGround = collides(posX, posY + SPRITE_WIDTH);
@@ -86,13 +91,26 @@ void Platformer::physics(double deltaTime,
       xVel += 0.75 * acc * deltaTime;
   }
 
-  // not sure how to incorporate friction with delta time
-  if(onGround && !lefting && !righting)
-    xVel *= 0.995; // friction
-
-  // the falling slowdown is a bit less
-  if(!onGround && !lefting && !righting)
-    xVel *= 0.999; // friction
+  if(!lefting && !righting) {
+    if(xVel > 0) {
+      if(onGround) {
+        xVel -= acc * deltaTime;
+      } else {
+        xVel -= 0.75 * acc * deltaTime;
+      }
+      if(xVel < 0)
+        xVel = 0;
+    }
+    if(xVel < 0) {
+      if(onGround) {
+        xVel += acc * deltaTime;
+      } else {
+        xVel += 0.75 * acc * deltaTime;
+      }
+      if(xVel > 0)
+        xVel = 0;
+    }
+  }
 
   // max speed
   if(xVel > maxXVel) {
@@ -134,14 +152,18 @@ void Platformer::physics(double deltaTime,
   }
 
 
-  if(jumping) {
-    yVel += 0.5 * gravity * deltaTime;
-  } else {
-    yVel += gravity * deltaTime;
-  }
+  // if(jumping) {
+  //   yVel += 0.5 * gravity * deltaTime;
+  // } else {
+  yVel += gravity * deltaTime;
+  // }
 
   if(yVel > maxYVel) {
     yVel = maxYVel;
+  } else if(jumping) {
+    if(yVel < -sustainedJump) {
+      yVel = -sustainedJump;
+    }
   } else if(yVel < -maxYVel) {
     yVel = -maxYVel;
   }
@@ -318,6 +340,7 @@ void Platformer::readLevel(std::string filename) {
 
   // load filename in text mode
   std::ifstream levelData(filename);
+
   // make sure that the file opened
   if(levelData.is_open()) {
     levelData >> levelW >> levelH;
@@ -331,6 +354,7 @@ void Platformer::readLevel(std::string filename) {
         if(tiles[i][j] == 67) {
           posX = j * SPRITE_WIDTH;
           posY = i * SPRITE_WIDTH;
+          moveScreenToPosition(posX, posY, 1);
         }
       }
     }
