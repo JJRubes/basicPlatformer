@@ -1,0 +1,35 @@
+Issues
+Major Issues
+what the fuck is going on with delta time?
+maybe more granular values provided on one computer allow
+for linear acceleration to be more effective than on computers
+with less granularity.
+Nope, adding a delay at the start of frames I approximated crossing the first room
+with 1ms of delay it took a bit over 2 seconds
+with 10ms of delay it took about 10 seconds
+with 100ms of delay it took about 90 seconds
+clearly something else is going on here
+
+Minor Issues
+Against the right side of a wall visual bug
+
+
+General
+Platforming QoL
+corner alignment helping
+wall jump from a few pixels away like celeste?
+interlaced horizontal and vertical movement steps?
+actually good jump physics
+balancing physics - maybe make it adjustable on the fly for easier testing
+
+Visual
+Colour keying
+New art
+animated sprites
+
+Sound
+???
+music?
+
+Levels
+multiple levels / level loading?

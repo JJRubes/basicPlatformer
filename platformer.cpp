@@ -205,15 +205,20 @@ void Platformer::physics(double deltaTime,
 int Platformer::draw() {
   bool quit = false;
 
-  Uint64 NOW = SDL_GetPerformanceCounter();
+  // Uint64 NOW = SDL_GetPerformanceCounter();
+  Uint64 NOW = SDL_GetTicks64();
   Uint64 LAST = 0; 
   double deltaTime = 0;
 
   while(!quit) {
+    SDL_Delay(10);
     // https://gamedev.stackexchange.com/questions/110825/how-to-calculate-delta-time-with-sdl
+    // LAST = NOW;
+    // NOW = SDL_GetPerformanceCounter();
+    // deltaTime = (double)(((NOW - LAST) * 1000) / (double)SDL_GetPerformanceFrequency());
     LAST = NOW;
-    NOW = SDL_GetPerformanceCounter();
-    deltaTime = (double)(((NOW - LAST) * 1000) / (double)SDL_GetPerformanceFrequency());
+    NOW = SDL_GetTicks64();
+    deltaTime = (double)((NOW - LAST));
 
     bool jumping = false;
     bool lefting = false;
